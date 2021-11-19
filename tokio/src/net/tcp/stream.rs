@@ -236,6 +236,15 @@ impl TcpStream {
                 .map(|raw_fd| unsafe { std::net::TcpStream::from_raw_fd(raw_fd) })
         }
 
+        #[cfg(target_os = "wasi")]
+        {
+            use std::os::wasi::io::{FromRawFd, IntoRawFd};
+            self.io
+                .into_inner()
+                .map(|io| io.into_raw_fd())
+                .map(|raw_fd| unsafe { std::net::TcpStream::from_raw_fd(raw_fd) })
+        }
+
         #[cfg(windows)]
         {
             use std::os::windows::io::{FromRawSocket, IntoRawSocket};
@@ -1129,6 +1138,12 @@ impl TcpStream {
             unsafe { mio::net::TcpSocket::from_raw_socket(self.as_raw_socket()) }
         }
 
+        #[cfg(target_os = "wasi")]
+        {
+            use std::os::wasi::io::{AsRawFd, FromRawFd};
+            unsafe { mio::net::TcpSocket::from_raw_fd(self.as_raw_fd()) }
+        }
+
         #[cfg(unix)]
         {
             use std::os::unix::io::{AsRawFd, FromRawFd};
@@ -1307,6 +1322,18 @@ impl fmt::Debug for TcpStream {
 mod sys {
     use super::TcpStream;
     use std::os::unix::prelude::*;
+
+    impl AsRawFd for TcpStream {
+        fn as_raw_fd(&self) -> RawFd {
+            self.io.as_raw_fd()
+        }
+    }
+}
+
+#[cfg(target_os = "wasi")]
+mod sys {
+    use super::TcpStream;
+    use std::os::wasi::prelude::*;
 
     impl AsRawFd for TcpStream {
         fn as_raw_fd(&self) -> RawFd {

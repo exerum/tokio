@@ -4,6 +4,8 @@ use std::fmt;
 use std::io;
 use std::net::SocketAddr;
 
+#[cfg(target_os = "wasi")]
+use std::os::wasi::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 #[cfg(unix)]
 use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
 #[cfg(windows)]
@@ -517,6 +519,14 @@ impl TcpSocket {
             unsafe { TcpSocket::from_raw_fd(raw_fd) }
         }
 
+        #[cfg(target_os = "wasi")]
+        {
+            use std::os::wasi::io::{FromRawFd, IntoRawFd};
+
+            let raw_fd = std_stream.into_raw_fd();
+            unsafe { TcpSocket::from_raw_fd(raw_fd) }
+        }
+
         #[cfg(windows)]
         {
             use std::os::windows::io::{FromRawSocket, IntoRawSocket};
@@ -533,14 +543,14 @@ impl fmt::Debug for TcpSocket {
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 impl AsRawFd for TcpSocket {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 impl FromRawFd for TcpSocket {
     /// Converts a `RawFd` to a `TcpSocket`.
     ///
@@ -554,7 +564,7 @@ impl FromRawFd for TcpSocket {
     }
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "wasi"))]
 impl IntoRawFd for TcpSocket {
     fn into_raw_fd(self) -> RawFd {
         self.inner.into_raw_fd()

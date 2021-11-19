@@ -102,8 +102,16 @@ where
             return Poll::Ready(Ok(None));
         }
 
+        #[cfg(not(target_os = "wasi"))]
         if me.buf.last() == Some(me.delim) {
             me.buf.pop();
+        }
+        #[cfg(target_os = "wasi")]
+        match me.buf.last() {
+            Some(b) => if b == me.delim {
+                me.buf.pop();
+            },
+            _ => {}
         }
 
         Poll::Ready(Ok(Some(mem::take(me.buf))))

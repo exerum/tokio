@@ -259,6 +259,15 @@ impl TcpListener {
                 .map(|raw_fd| unsafe { std::net::TcpListener::from_raw_fd(raw_fd) })
         }
 
+        #[cfg(target_os = "wasi")]
+        {
+            use std::os::wasi::io::{FromRawFd, IntoRawFd};
+            self.io
+                .into_inner()
+                .map(|io| io.into_raw_fd())
+                .map(|raw_fd| unsafe { std::net::TcpListener::from_raw_fd(raw_fd) })
+        }
+
         #[cfg(windows)]
         {
             use std::os::windows::io::{FromRawSocket, IntoRawSocket};
